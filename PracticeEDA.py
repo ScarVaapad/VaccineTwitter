@@ -10,7 +10,7 @@ import seaborn as sns
 
 sns.set(style="ticks")
 # style = 'dark','darkgrid','whitegrid' are some other styles
-hydrated = pd.read_csv(r'data\hydrated.csv', dtype='unicode')
+hydrated = pd.read_csv(r'data\COMPLETEhydrated.csv', dtype='unicode')
 
 # converting to float
 hydrated["retweet_count"] = pd.to_numeric(hydrated["retweet_count"], downcast="float")
