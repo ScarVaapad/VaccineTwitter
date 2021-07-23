@@ -7,10 +7,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 
 sns.set(style="ticks")
 # style = 'dark','darkgrid','whitegrid' are some other styles
-hydrated = pd.read_csv(r'data\COMPLETEhydrated.csv', dtype='unicode')
+filename = 'COMPLETEhydrated.csv'
+directory = os.path.join('data',filename)
+hydrated = pd.read_csv(directory, dtype='unicode')
 
 # converting to float
 hydrated["retweet_count"] = pd.to_numeric(hydrated["retweet_count"], downcast="float")
