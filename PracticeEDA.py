@@ -15,13 +15,31 @@ filename = 'COMPLETEhydrated.csv'
 directory = os.path.join('data',filename)
 hydrated = pd.read_csv(directory, dtype='unicode')
 
-# converting to float
-hydrated["retweet_count"] = pd.to_numeric(hydrated["retweet_count"], downcast="float")
-hydrated["favorite_count"] = pd.to_numeric(hydrated["favorite_count"], downcast="float")
-hydrated["user_listed_count"] = pd.to_numeric(hydrated["user_listed_count"], downcast="float")
-hydrated["user_statuses_count"] = pd.to_numeric(hydrated["user_statuses _count"], downcast="float")
-hydrated["user_favorites_count"] = pd.to_numeric(hydrated["user_favourites_count"], downcast="float")
+# We need to convert all columns into the right data type, maybe remove some unnecessary columns
+hydrated["retweet_count"] = pd.to_numeric(hydrated["retweet_count"], downcast="integer")
+hydrated["favorite_count"] = pd.to_numeric(hydrated["favorite_count"], downcast="integer")
+hydrated["user_listed_count"] = pd.to_numeric(hydrated["user_listed_count"], downcast="integer")
+hydrated["user_statuses_count"] = pd.to_numeric(hydrated["user_statuses _count"], downcast="integer")
+hydrated["user_favorites_count"] = pd.to_numeric(hydrated["user_favourites_count"], downcast="integer")
+hydrated["created_at"] = pd.to_datetime(hydrated["created_at"])
 
+# Test Field on a single user (realBenTalks)
+testdf = hydrated
+testdf=testdf.drop(columns=['Unnamed: 0','Unnamed: 0.1','Unnamed: 0.1.1','id_str'])
+
+ben = testdf[testdf.from_user=='realBenTalks']
+ben = ben.sort_values(by=['created_at'])
+
+# A plot on how many tweets Ben tweeted each week:
+ben = ben.set_index('created_at')
+weekly_tweet = ben.resample('w').count().reset_index()
+weekly_tweet.created_at = weekly_tweet.created_at.dt.date
+
+ax = weekly_tweet.plot(kind='bar',x='created_at',y='letter_id_str',figsize=(8,5))
+ax.set_xlabel('Date - Week Starting')
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
 # Here .astype() will cast all df object as "true", instead we can use "==" to match if the content is true
 # hydrated['user_verified'] = hydrated['user_verified'].astype('bool')
 hydrated['user_verified'] = hydrated['user_verified'] == "True"
