@@ -40,6 +40,7 @@ ax.set_xlabel('Date - Week Starting')
 plt.xticks(rotation=45)
 plt.tight_layout()
 plt.show()
+
 # Here .astype() will cast all df object as "true", instead we can use "==" to match if the content is true
 # hydrated['user_verified'] = hydrated['user_verified'].astype('bool')
 hydrated['user_verified'] = hydrated['user_verified'] == "True"
@@ -48,6 +49,28 @@ hydrated['user_verified'] = hydrated['user_verified'] == "True"
 # print(hydrated.isnull().values.sum())
 hydrated['user_verified'].value_counts()
 
+# Test if users are always verified:
+cnt_true = 0
+cnt_false =0
+cnt_mix = 0
+error = 0
+sumcount = 1000
+for index,data in hydrated.groupby(['from_user']):
+    if sumcount ==0 :
+        break
+    sumcount-=1
+    if data.user_verified.value_counts().count()>1:
+        cnt_mix+=1
+        print(data.user_verified.value_counts())
+        print(data.user_verified.values)
+    elif data.user_verified.values[0]== True:
+        cnt_true+=1
+        print(data.user_verified.value_counts())
+        print(data.user_verified.values)
+    else:
+        cnt_false+=1
+
+print({'Verified:':cnt_true,"Not Verified":cnt_false,"Verified in between:":cnt_mix,"Anormaly:":error})
 # We can also group it by selecting id_str or letter_id_str to see how many unique entires
 hydrated.groupby('user_verified')[['id_str', 'letter_id_str']].nunique()
 
