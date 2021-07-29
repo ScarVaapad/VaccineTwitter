@@ -1,0 +1,4 @@
+# Converting a Python Script to Jupyter Notebook (with p2j installed)
+$ p2j file_name.py
+# Converting a .jypnb into .py
+$ jupyter nbconvert --to python 'file_name'
