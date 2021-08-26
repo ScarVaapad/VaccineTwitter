@@ -5,12 +5,11 @@
 
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import os
 import re
 import emoji
 import nltk
+from langdetect import detect
 
 # style = 'dark','darkgrid','whitegrid' are some other styles
 filename = 'COMPLETEhydrated.csv'
@@ -53,17 +52,29 @@ tweets=[]
 mentions=[]
 emjs=[]
 hashtags=[]
-for description in corpus_tweet_list:
-    a1,a2,a3,a4 = cleaner(description)
+langs = []
+count = 0
+for twt in corpus_tweet_list:
+    count+=1
+    if(count%1000==0):
+        print("beep")
+    tweet,mention,emj,hashtag = cleaner(twt)
 
-    tweets.append(a1)
-    mentions.append(a2)
-    emjs.append(a3)
-    hashtags.append(a4)
+    tweets.append(tweet)
+    mentions.append(mention)
+    emjs.append(emj)
+    hashtags.append(hashtag)
+    lang = ""
+    try:
+        lang = detect(tweet)
+    except:
+        lang = "error"
+    langs.append(lang)
 
 hydrated['tweet_text']=tweets
 hydrated['tweet_mentions']=mentions
 hydrated['tweet_emojis']=emjs
 hydrated['tweet_hashtags']=hashtags
+hydrated['tweet_language']=langs
 
 hydrated.to_csv(os.path.join('data','hydrated_clean.csv'))
