@@ -8,31 +8,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import re
+import nltk
 
 sns.set(style="ticks")
 # style = 'dark','darkgrid','whitegrid' are some other styles
-filename = 'COMPLETEhydrated.csv'
+filename = 'hydrated_clean.csv'
 directory = os.path.join('data',filename)
 hydrated = pd.read_csv(directory, dtype='unicode')
 
-# We need to convert all columns into the right data type, maybe remove some unnecessary columns
-hydrated["retweet_count"] = pd.to_numeric(hydrated["retweet_count"], downcast="float")
-hydrated["favorite_count"] = pd.to_numeric(hydrated["favorite_count"], downcast="float")
-hydrated["user_listed_count"] = pd.to_numeric(hydrated["user_listed_count"], downcast="float")
-hydrated["user_statuses_count"] = pd.to_numeric(hydrated["user_statuses _count"], downcast="float")
-hydrated = hydrated.drop(columns=["user_statuses _count"])
-hydrated["user_favourites_count"] = pd.to_numeric(hydrated["user_favourites_count"], downcast="float")
-hydrated["created_at"] = pd.to_datetime(hydrated["created_at"])
-
-# Clean the dataframe
-testdf = hydrated
-testdf = testdf.drop(columns=['Unnamed: 0','Unnamed: 0.1','Unnamed: 0.1.1','id_str','from_user_id_str'])
-testdf = testdf.drop(index=testdf[testdf.user_lang.notna()].index)
-testdf = testdf.drop(columns=['user_lang'])
-
 # Tweeter counts over time
-testdf = testdf.sort_values(by=['created_at'])
-weekly_tweet = testdf.resample('w',on='created_at').count()
+hydrated = hydrated.sort_values(by=['created_at'])
+weekly_tweet = hydrated.resample('w',on='created_at').count()
 weekly_tweet.index = weekly_tweet.index.date
 
 ax = weekly_tweet.plot(kind='bar',y='letter_id_str',figsize=(8,5))
@@ -42,7 +29,7 @@ plt.tight_layout()
 plt.show()
 
 # Establish a dataframe based on users
-df_by_user = testdf.groupby('from_user')
+df_by_user = hydrated.groupby('from_user')
 user_dict = {}
 for username, sub_df in df_by_user:
     sub_df.sort_values('created_at')
@@ -71,11 +58,14 @@ new_df.value_counts('user_verified')
 # Step 3. Show stats of word count, choose top 50?
 # Step 4. Arbitrarily define two brackets of words to distinguish between Media and Individuals
 # Step 5. Run it through all verified users
+corpus_user_description_list = hydrated.user_description.unique().tolist()
 
-df_verified = testdf[testdf.user_verified == 'TRUE']
+
+
+df_verified = hydrated[hydrated.user_verified == 'TRUE']
 user_des_list = df_verified.user_description.unique().tolist()
 # Test Field on a single user (realBenTalks)
-ben = testdf[testdf.from_user=='realBenTalks']
+ben = hydrated[hydrated.from_user=='realBenTalks']
 ben = ben.sort_values(by=['created_at'])
 
 # A plot on how many tweets Ben tweeted each week:
