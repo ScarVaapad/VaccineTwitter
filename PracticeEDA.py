@@ -10,6 +10,11 @@ import seaborn as sns
 import os
 import re
 import nltk
+import plotly
+import plotly.graph_objs as go
+from plotly.offline import init_notebook_mode, iplot
+init_notebook_mode(connected=True)
+import datetime
 
 sns.set(style="ticks")
 # style = 'dark','darkgrid','whitegrid' are some other styles
@@ -17,8 +22,48 @@ filename = 'hydrated_clean.csv'
 directory = os.path.join('data',filename)
 hydrated = pd.read_csv(directory, dtype='unicode')
 
-# Tweeter counts over time
+# Tweet counts over time and interactive VIS
 hydrated = hydrated.sort_values(by=['created_at'])
+hydrated['created_at']=pd.to_datetime(hydrated['created_at'])
+daily_tweet = hydrated.resample('d',on="created_at").count()
+
+tweetNum = go.Scatter(
+    x=daily_tweet.index.strftime("%Y-%m-%d").values,
+    y=daily_tweet["text"].values,
+    name = "Tweeter Counts",
+    line = dict(color = '#7F7F7F'),
+    opacity = 0.8
+)
+
+data = [tweetNum]
+
+layout = dict(
+    title='Tweet Counts over time',
+    xaxis=dict(
+        rangeselector=dict(
+            buttons=list([
+                dict(count=7,
+                     label='1w',
+                     step='day',
+                     stepmode='backward'),
+                dict(count=1,
+                     label='1m',
+                     step='month',
+                     stepmode='backward'),
+                dict(step='all')
+            ])
+        ),
+        rangeslider=dict(
+            visible = True
+        ),
+        type='date'
+    )
+)
+
+fig = dict(data=data, layout=layout)
+iplot(fig, filename = "Tweet Counts over time")
+plotly.offline.plot(fig, filename='Tweets.html')
+
 weekly_tweet = hydrated.resample('w',on='created_at').count()
 weekly_tweet.index = weekly_tweet.index.date
 
@@ -27,6 +72,9 @@ ax.set_xlabel('Date - Week Starting')
 plt.xticks(rotation=45)
 plt.tight_layout()
 plt.show()
+
+# Pie-chart of language use on tweets (all tweets)
+hydrated['tweet_language'].value_counts()
 
 # Establish a dataframe based on users
 df_by_user = hydrated.groupby('from_user')
@@ -78,6 +126,17 @@ ax.set_xlabel('Date - Week Starting')
 plt.xticks(rotation=45)
 plt.tight_layout()
 plt.show()
+
+# Languages used
+lang_stats = hydrated['tweet_language'].value_counts()
+minor = 0
+lang_result = []
+for index,value in lang_stats.iteritems():
+    if value<500:
+        minor+=value
+    else:
+        lang_result.append(value)
+lang_result.append(minor)
 
 # Here .astype() will cast all df object as "true", instead we can use "==" to match if the content is true
 # hydrated['user_verified'] = hydrated['user_verified'].astype('bool')

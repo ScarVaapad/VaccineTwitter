@@ -55,9 +55,6 @@ hashtags=[]
 langs = []
 count = 0
 for twt in corpus_tweet_list:
-    count+=1
-    if(count%1000==0):
-        print("beep")
     tweet,mention,emj,hashtag = cleaner(twt)
 
     tweets.append(tweet)
