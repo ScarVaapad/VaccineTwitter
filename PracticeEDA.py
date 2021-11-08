@@ -12,9 +12,12 @@ import re
 import nltk
 import plotly
 import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 from plotly.offline import init_notebook_mode, iplot
 init_notebook_mode(connected=True)
 import datetime
+import iso639
+
 
 sns.set(style="ticks")
 # style = 'dark','darkgrid','whitegrid' are some other styles
@@ -25,6 +28,15 @@ hydrated = pd.read_csv(directory, dtype='unicode')
 # Tweet counts over time and interactive VIS
 hydrated = hydrated.sort_values(by=['created_at'])
 hydrated['created_at']=pd.to_datetime(hydrated['created_at'])
+weekly_tweet = hydrated.resample('w',on='created_at').count()
+weekly_tweet.index = weekly_tweet.index.date
+
+ax = weekly_tweet.plot(kind='bar',y='letter_id_str',figsize=(8,5))
+ax.set_xlabel('Date - Week Starting')
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
 daily_tweet = hydrated.resample('d',on="created_at").count()
 
 tweetNum = go.Scatter(
@@ -34,8 +46,6 @@ tweetNum = go.Scatter(
     line = dict(color = '#7F7F7F'),
     opacity = 0.8
 )
-
-data = [tweetNum]
 
 layout = dict(
     title='Tweet Counts over time',
@@ -60,45 +70,112 @@ layout = dict(
     )
 )
 
-fig = dict(data=data, layout=layout)
-iplot(fig, filename = "Tweet Counts over time")
-plotly.offline.plot(fig, filename='Tweets.html')
+fig = make_subplots(rows=1,cols=1)
+fig.add_trace(tweetNum)
+fig.update_layout(layout)
+plotly.offline.plot(fig, filename='Tweet_Counts_Over_Time.html')
 
-weekly_tweet = hydrated.resample('w',on='created_at').count()
-weekly_tweet.index = weekly_tweet.index.date
+# Most retweeted --> Problem with retweet count the value in the sheet is not reliable, but counting directly is also not ideal since not all the tweets are included
+# For now only using counting numbers
+RT_hydrated = hydrated[hydrated['text'].str.startswith('RT')]
+df_slice = hydrated[['from_user','created_at','retweet_count','tweet_text','tweet_hashtags','tweet_language']]
+txt_stats = df_slice['tweet_text'].value_counts().head(200)
 
-ax = weekly_tweet.plot(kind='bar',y='letter_id_str',figsize=(8,5))
-ax.set_xlabel('Date - Week Starting')
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.show()
+# Hashtag co-occurance
+from ast import literal_eval
+hydrated['tweet_hashtags']=hydrated['tweet_hashtags'].apply(literal_eval)
+hashtag_stats = {}
+stemmer = nltk.stem.porter.PorterStemmer()
+for index,item in hydrated['tweet_hashtags'].iteritems():
+    for hashtag in item:
+        hashtag = re.sub(r'#','',hashtag).lower()
+        hashtag = stemmer.stem(hashtag)
+        if hashtag in hashtag_stats:
+            hashtag_stats[hashtag]+=1
+        else:
+            hashtag_stats[hashtag]=1
+hashtag_stats={k: v for k, v in sorted(hashtag_stats.items(), key=lambda item: item[1],reverse=True)}
+first100_list = list(hashtag_stats.items())[:100]
+_hashtag,_count = zip(*first100_list)
+tweetHashtag = go.Bar(
+    x=_hashtag,
+    y=_count
+)
+fig = make_subplots(rows=2,cols=1)
+fig.add_trace(tweetHashtag)
+tweetHashtag2 = go.Bar(
+    x=_hashtag[5:],
+    y=_count[5:]
+)
+fig.add_trace(tweetHashtag2,row=2,col=1)
+plotly.offline.plot(fig, filename='Tweet_Hashtag.html')
 
 # Pie-chart of language use on tweets (all tweets)
-hydrated['tweet_language'].value_counts()
+x = []
+y = []
+for k,v in hydrated['tweet_language'].value_counts().iteritems():
+    try:
+        _k=iso639.to_name(k)
+    except:
+        _k=k
+    x.append(_k)
+    y.append(v)
+
+fig = make_subplots(rows=2,cols=1)
+fig.add_trace(go.Pie(name='Language Distribution',labels=x,values=y))
+plotly.offline.plot(fig,filename='Language_Distribution.html')
 
 # Establish a dataframe based on users
-df_by_user = hydrated.groupby('from_user')
-user_dict = {}
-for username, sub_df in df_by_user:
-    sub_df.sort_values('created_at')
-    data = {}
-    data["tweets_count"] = sub_df["text"].count()
-    data["user_created_at"] = pd.to_datetime(sub_df["user_created_at"][sub_df["user_created_at"].index[0]]).date()
-    data["user_verified"] = sub_df["user_verified"].notnull().any()
-    user_dict[username]=data
+# df_by_user = hydrated.groupby('from_user')
+# user_dict = {}
+# for username, sub_df in df_by_user:
+#     sub_df.sort_values('created_at')
+#     data = {}
+#     data["tweets_count"] = sub_df["text"].count()
+#     data["user_created_at"] = pd.to_datetime(sub_df["user_created_at"][sub_df["user_created_at"].index[0]]).date()
+#     data["user_verified"] = sub_df["user_verified"].notnull().any()
+#     user_dict[username]=data
+#
+# new_df = pd.DataFrame.from_dict(user_dict,'index')
+# new_df.to_csv(os.path.join("data","user_stats.csv"))
+# new_df = new_df.sort_values('tweets_count',ascending=False)
+# new_df = new_df.sort_values('user_created_at')
+# new_df = new_df.sort_values("user_verified")
+# new_df.user_created_at = pd.DatetimeIndex(new_df.user_created_at).to_period('M')
+# month_group = new_df.groupby('user_created_at')
+#
+# for month,sub_df in month_group:
+#     print(month," --> ",sub_df.user_verified.value_counts(normalize=True)*100)
 
-new_df = pd.DataFrame.from_dict(user_dict,'index')
-new_df.to_csv(os.path.join("data","user_stats.csv"))
-new_df = new_df.sort_values('tweets_count',ascending=False)
-new_df = new_df.sort_values('user_created_at')
-new_df = new_df.sort_values("user_verified")
-new_df.user_created_at = pd.DatetimeIndex(new_df.user_created_at).to_period('M')
-month_group = new_df.groupby('user_created_at')
+# Loading and investigate Age of the accounts
+user_df = pd.read_csv(os.path.join("data","user_stats.csv"))
+user_df = user_df.sort_values('user_created_at')
+user_df.user_created_at = pd.to_datetime(user_df['user_created_at'])
+d1 = user_df[user_df.user_created_at<=datetime.datetime(2020,3,1)]['user_created_at'].count()
+d2 = user_df[(user_df.user_created_at>datetime.datetime(2020,3,1)) & (user_df.user_created_at<=datetime.datetime(2020,6,1))]['user_created_at'].count()
+d3 = user_df[(user_df.user_created_at>datetime.datetime(2020,6,1)) & (user_df.user_created_at<=datetime.datetime(2020,9,1))]['user_created_at'].count()
+d4 = user_df[(user_df.user_created_at>datetime.datetime(2020,9,1)) & (user_df.user_created_at<=datetime.datetime(2020,11,4))]['user_created_at'].count()
+d5 = user_df[user_df.user_created_at>datetime.datetime(2020,11,4)]['user_created_at'].count()
+fig = make_subplots(rows=1,cols=2)
+fig.add_trace(go.Bar(name='# of users registered in the dataset',x=['Before March','March to June','June to August','August to Election','Post Election'], y= [d1,d2,d3,d4,d5]))
+text = "Users registered after March accounted for %.2f%% of the data" % (((d2+d3+d4+d5)/(d1+d2+d3+d4+d5)).round(4)*100)
+fig.add_trace(go.Bar(name='# of users registered after March 2020',x=['March to June','June to August','August to Election','Post Election'], y= [d2,d3,d4,d5]),row=1,col=2)
+fig['layout'].update(
+    annotations=[
+        dict(
+            xref = 'x2',
+            yref = 'y1',
+            x=1.5,
+            y=80000,
+            text=text
+        )
+    ]
+)
+plotly.offline.plot(fig, filename='User Account Registrations Overtime.html')
 
-for month,sub_df in month_group:
-    print(month," --> ",sub_df.user_verified.value_counts(normalize=True)*100)
 
-new_df.value_counts('user_verified')
+
+#new_df.value_counts('user_verified')
 
 # To investigate verified individuals:
 # Step 1. Scrapping all user_description and make it a corpus.

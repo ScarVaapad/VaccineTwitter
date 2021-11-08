@@ -43,7 +43,7 @@ def cleaner(tweet):
     tweet = " ".join(tweet.split())
     emj = ''.join(c for c in tweet if c in emoji.UNICODE_EMOJI['en']) #Extract Emoji
     tweet = ''.join(c for c in tweet if c not in emoji.UNICODE_EMOJI['en']) #Remove Emojis
-    tweet = tweet.replace("#", "").replace("_", " ") #Remove hashtag sign but keep the text
+    tweet = tweet.replace("#", "") #Remove hashtag sign but keep the text
     #tweet = " ".join(w for w in nltk.wordpunct_tokenize(tweet) \
                     # if w.lower() in words or not w.isalpha())
     return tweet,mention,emj,hashtag
