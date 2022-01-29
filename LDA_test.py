@@ -3,11 +3,15 @@ import os
 import re
 import gensim
 from collections import defaultdict
+
+import pyLDAvis
 from gensim.models import CoherenceModel
 from nltk.stem import WordNetLemmatizer
 import logging
 import numpy as np
 import tqdm
+from pprint import pprint
+
 
 df = pd.read_csv(os.path.join('data',"hydrated_clean_1.csv"))
 
@@ -16,7 +20,7 @@ df['created_at'] = pd.to_datetime(df['created_at']).dt.tz_convert(None)
 
 # Generating corpus from all the texts, and remove 'rt' for retweets
 texts = [[word for word in document.split() if word not in ['rt','vaccine','covid19','coronavirus','covid-19','vaccination','covid','&amp','-']] for document in df.tweet_wordbag]
-    # Possible removing the less frequent words(like used only once)
+# Removing the less frequent words(like used only once)
 frequency = defaultdict(int)
 for text in texts:
     for token in text:
@@ -152,3 +156,9 @@ for document in df.tweet_wordbag:
 for idx, topic in lda_model.print_topics(-1):
     print('Topic: {} \nWords: {}'.format(idx, topic))
 #
+# Visualize the topics
+pyLDAvis.enable_notebook()
+vis = pyLDAvis.gensim.prepare(lda_model,corpus, id2word)
+vis
+
+
